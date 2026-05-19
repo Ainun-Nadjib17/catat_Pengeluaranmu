@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SoulGPT — Masuk</title>
+    <title>Masuk Kuy</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js?v=3"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -485,7 +485,7 @@
 
                         setTimeout(() => {
                             if (window.location.protocol === 'file:') {
-                                window.location.href = `finance.html?logged_in=active&uid=${data.user.id}&access_token=${data.session.access_token}&refresh_token=${data.session.refresh_token}`;
+                                window.location.href = `index.html?logged_in=active&uid=${data.user.id}&access_token=${data.session.access_token}&refresh_token=${data.session.refresh_token}`;
                             } else {
                                 window.location.href = "finance.html";
                             }
