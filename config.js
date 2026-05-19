@@ -34,7 +34,7 @@ function checkAuth(requireUser = true) {
         window.location.href = "login.html";
         return false;
     } else if (!requireUser && sessionToken === "active") {
-        window.location.href = "finance.html";
+        window.location.href = "index.html";
         return true;
     }
     return true;
