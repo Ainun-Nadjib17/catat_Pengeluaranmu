@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoulGPT — Keuangan Pribadi</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js?v=3" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0e17;
+            --surface: #111827;
+            --surface-2: #1a2235;
+            --surface-3: #212d45;
+            --border: rgba(255, 255, 255, 0.06);
+            --border-hover: rgba(255, 255, 255, 0.12);
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --green: #10b981;
+            --green-soft: rgba(16, 185, 129, 0.12);
+            --red: #ef4444;
+            --red-soft: rgba(239, 68, 68, 0.12);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* === Background Glow === */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -200px;
+            right: -200px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -200px;
+            left: -200px;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 32px 20px 60px;
+        }
+
+        /* === Header === */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .header-left h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.3px;
+        }
+
+        .header-left p {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--red);
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            width: auto;
+        }
+
+        .btn-logout:hover {
+            background: var(--red-soft);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        /* === Saldo Card === */
+        .saldo-card {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+            border-radius: var(--radius);
+            padding: 28px 30px;
+            margin-bottom: 28px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
+        }
+
+        .saldo-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .saldo-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 6px;
+        }
+
+        .saldo-amount {
+            font-size: 36px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -1px;
+        }
+
+        .saldo-sub {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.45);
+            margin-top: 8px;
+        }
+
+        /* === Cards / Sections === */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .icon-green {
+            background: var(--green-soft);
+            color: var(--green);
+        }
+
+        .icon-purple {
+            background: var(--accent-glow);
+            color: var(--accent-light);
+        }
+
+        .icon-blue {
+            background: rgba(56, 189, 248, 0.12);
+            color: #38bdf8;
+        }
+
+        /* === Form Elements === */
+        .form-row {
+            margin-bottom: 16px;
+        }
+
+        .form-row label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-row input,
+        .form-row select {
+            width: 100%;
+            padding: 11px 14px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 14px;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .form-row input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .form-row input:focus,
+        .form-row select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-row select option {
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            margin-top: 6px;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-light);
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* === Kategori === */
+        .kategori-input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .kategori-input-row input {
+            flex: 1;
+        }
+
+        .btn-add-kat {
+            padding: 11px 16px;
+            background: var(--surface-3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: var(--transition);
+            width: auto;
+            margin: 0;
+        }
+
+        .btn-add-kat:hover {
+            background: var(--accent-glow);
+            border-color: var(--accent);
+            color: var(--accent-light);
+        }
+
+        .kategori-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .kat-tag {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            padding: 5px 12px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+            animation: fadeIn 0.25s ease;
+        }
+
+        .kat-tag:hover {
+            border-color: var(--border-hover);
+        }
+
+        .kat-remove {
+            cursor: pointer;
+            color: var(--text-dim);
+            font-size: 15px;
+            line-height: 1;
+            transition: var(--transition);
+        }
+
+        .kat-remove:hover {
+            color: var(--red);
+        }
+
+        /* === Table === */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        thead th {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+
+        thead th:first-child {
+            border-radius: var(--radius-sm) 0 0 0;
+        }
+
+        thead th:last-child {
+            border-radius: 0 var(--radius-sm) 0 0;
+        }
+
+        tbody td {
+            padding: 14px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+
+        tbody tr {
+            transition: var(--transition);
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-masuk {
+            background: var(--green-soft);
+            color: var(--green);
+        }
+
+        .badge-keluar {
+            background: var(--red-soft);
+            color: var(--red);
+        }
+
+        .amount-cell {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        /* === Animations === */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: fadeIn 0.4s ease;
+        }
+
+        .card:nth-child(2) { animation-delay: 0.05s; }
+        .card:nth-child(3) { animation-delay: 0.1s; }
+        .card:nth-child(4) { animation-delay: 0.15s; }
+
+        /* === Responsive: Tablet (768px) === */
+        @media (max-width: 768px) {
+            .app {
+                padding: 24px 16px 48px;
+            }
+
+            .saldo-card {
+                padding: 24px;
+            }
+
+            .saldo-amount {
+                font-size: 30px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            thead th,
+            tbody td {
+                padding: 10px 12px;
+            }
+        }
+
+        /* === Responsive: Mobile (600px) === */
+        @media (max-width: 600px) {
+            .app {
+                padding: 16px 12px 40px;
+            }
+
+            .header {
+                margin-bottom: 20px;
+            }
+
+            .header-left h1 {
+                font-size: 18px;
+            }
+
+            .header-left p {
+                font-size: 12px;
+            }
+
+            .saldo-card {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+
+            .saldo-amount {
+                font-size: 26px;
+            }
+
+            .saldo-label {
+                font-size: 11px;
+            }
+
+            .saldo-sub {
+                font-size: 11px;
+                line-height: 1.5;
+            }
+
+            .card {
+                padding: 18px;
+                margin-bottom: 14px;
+                border-radius: 10px;
+            }
+
+            .card-title {
+                font-size: 14px;
+                margin-bottom: 14px;
+            }
+
+            .card-title .icon {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+
+            .form-row label {
+                font-size: 11px;
+            }
+
+            .form-row input,
+            .form-row select {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+
+            .kategori-input-row {
+                flex-direction: column;
+            }
+
+            .btn-add-kat {
+                width: 100%;
+            }
+
+            .btn-primary {
+                padding: 11px;
+                font-size: 13px;
+            }
+
+            .btn-logout {
+                padding: 6px 14px;
+                font-size: 12px;
+            }
+
+            /* Mobile table → card layout */
+            .table-wrapper {
+                margin-top: 8px;
+            }
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tbody tr {
+                background: var(--surface-2);
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                padding: 14px 16px;
+                margin-bottom: 10px;
+                position: relative;
+            }
+
+            tbody tr:hover {
+                background: var(--surface-3);
+            }
+
+            tbody td {
+                padding: 4px 0;
+                border-bottom: none;
+                font-size: 13px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            tbody td::before {
+                content: attr(data-label);
+                font-size: 11px;
+                font-weight: 600;
+                color: var(--text-dim);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                flex-shrink: 0;
+                margin-right: 12px;
+            }
+
+            tbody td:last-child {
+                margin-top: 6px;
+                padding-top: 8px;
+                border-top: 1px solid var(--border);
+            }
+        }
+
+        /* === Responsive: Small Mobile (480px) === */
+        @media (max-width: 480px) {
+            .app {
+                padding: 12px 10px 36px;
+            }
+
+            .header-left h1 {
+                font-size: 16px;
+            }
+
+            .saldo-amount {
+                font-size: 22px;
+            }
+
+            .saldo-card {
+                padding: 16px;
+                border-radius: 10px;
+            }
+
+            .saldo-card::before {
+                display: none;
+            }
+
+            .card {
+                padding: 14px;
+            }
+
+            .kategori-tags {
+                gap: 6px;
+            }
+
+            .kat-tag {
+                font-size: 11px;
+                padding: 4px 10px;
+            }
+
+            tbody tr {
+                padding: 12px 14px;
+            }
+        }
+
+        /* === Responsive: Extra Small (360px) === */
+        @media (max-width: 360px) {
+            .header-left h1 {
+                font-size: 15px;
+            }
+
+            .header-left p {
+                display: none;
+            }
+
+            .saldo-amount {
+                font-size: 20px;
+            }
+
+            .saldo-sub {
+                font-size: 10px;
+            }
+
+            .form-row input,
+            .form-row select {
+                padding: 9px 10px;
+                font-size: 12px;
+            }
+        }
+
+        /* === Safe area for notched devices === */
+        @supports (padding: env(safe-area-inset-bottom)) {
+            .app {
+                padding-bottom: calc(40px + env(safe-area-inset-bottom));
+                padding-left: calc(12px + env(safe-area-inset-left));
+                padding-right: calc(12px + env(safe-area-inset-right));
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <h1>Keuangan Pribadi</h1>
+                <p>Kelola arus keuanganmu dengan mudah</p>
+            </div>
+            <button class="btn-logout" id="logoutBtn">Keluar</button>
+        </div>
+
+        <!-- Saldo -->
+        <div class="saldo-card">
+            <div class="saldo-label">Total Saldo</div>
+            <div class="saldo-amount" id="totalSaldo">Rp 0</div>
+            <div class="saldo-sub" id="saldoSub">Memuat data...</div>
+        </div>
+
+        <!-- Tambahkan Saldo -->
+        <div class="card">
+            <div class="card-title">
+                <div class="icon icon-green">+</div>
+                Tambahkan Saldo
+            </div>
+            <form id="saldoForm">
+                <div class="form-row">
+                    <label>Jumlah Saldo</label>
+                    <input type="number" id="saldoJumlah" required placeholder="Masukkan jumlah, misal 500000">
+                </div>
+                <div class="form-row">
+                    <label>Kelola Kategori</label>
+                    <div class="kategori-input-row">
+                        <input type="text" id="saldoKategoriInput" placeholder="Tulis nama kategori baru...">
+                        <button type="button" class="btn-add-kat" id="btnTambahKategori">Tambah</button>
+                    </div>
+                    <div class="kategori-tags" id="kategoriList"></div>
+                </div>
+                <div class="form-row">
+                    <label>Pilih Kategori</label>
+                    <select id="saldoKategori" required>
+                        <option value="">Pilih kategori saldo</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Tambahkan Saldo</button>
+            </form>
+        </div>
+
+        <!-- Tambah Transaksi -->
+        <div class="card">
+            <div class="card-title">
+                <div class="icon icon-purple">&#8644;</div>
+                Catat Transaksi
+            </div>
+            <form id="financeForm">
+                <div class="form-row">
+                    <label>Deskripsi</label>
+                    <input type="text" id="deskripsi" required placeholder="Contoh: Bayar listrik bulanan">
+                </div>
+                <div class="form-grid">
+                    <div class="form-row">
+                        <label>Jumlah</label>
+                        <input type="number" id="jumlah" required placeholder="0">
+                    </div>
+                    <div class="form-row">
+                        <label>Kategori</label>
+                        <select id="kategoriTransaksi" required>
+                            <option value="">Pilih kategori</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>Tipe Transaksi</label>
+                    <select id="tipe">
+                        <option value="masuk">Pemasukan</option>
+                        <option value="keluar">Pengeluaran</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">Simpan Transaksi</button>
+            </form>
+        </div>
+
+        <!-- Riwayat -->
+        <div class="card">
+            <div class="card-title">
+                <div class="icon icon-blue">&#9776;</div>
+                Riwayat Transaksi
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Deskripsi</th>
+                            <th>Kategori</th>
+                            <th>Tipe</th>
+                            <th style="text-align:right;">Jumlah</th>
+                        </tr>
+                    </thead>
+                    <tbody id="financeTableBody">
+                        <tr>
+                            <td colspan="5" class="empty-state">Memuat riwayat transaksi...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // === Manajemen Kategori (localStorage) ===
+        function getKategoriList() {
+            const raw = localStorage.getItem('soulgpt_kategori');
+            return raw ? JSON.parse(raw) : [];
+        }
+
+        function saveKategoriList(list) {
+            localStorage.setItem('soulgpt_kategori', JSON.stringify(list));
+        }
+
+        function renderKategori() {
+            const list = getKategoriList();
+            const container = document.getElementById('kategoriList');
+            const selectSaldo = document.getElementById('saldoKategori');
+            const selectTransaksi = document.getElementById('kategoriTransaksi');
+
+            container.innerHTML = '';
+            list.forEach((kat, idx) => {
+                const tag = document.createElement('span');
+                tag.className = 'kat-tag';
+                tag.innerHTML = `${kat} <span class="kat-remove" data-idx="${idx}">&times;</span>`;
+                container.appendChild(tag);
+            });
+
+            const buildOptions = (sel) => {
+                const currentVal = sel.value;
+                sel.innerHTML = '<option value="">Pilih kategori</option>';
+                list.forEach(kat => {
+                    const opt = document.createElement('option');
+                    opt.value = kat;
+                    opt.textContent = kat;
+                    sel.appendChild(opt);
+                });
+                sel.value = currentVal;
+            };
+            buildOptions(selectSaldo);
+            buildOptions(selectTransaksi);
+
+            container.querySelectorAll('.kat-remove').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const i = parseInt(btn.dataset.idx);
+                    const updated = getKategoriList();
+                    updated.splice(i, 1);
+                    saveKategoriList(updated);
+                    renderKategori();
+                });
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (typeof checkAuth === 'function') {
+                checkAuth(true);
+            }
+
+            const sessionActive = sessionStorage.getItem("soulgpt_logged_in");
+            const userId = sessionStorage.getItem("soulgpt_uid");
+
+            if (sessionActive !== "active" || !userId) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            if (!supabaseClient && typeof SUPABASE_URL !== 'undefined') {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+
+            renderKategori();
+            loadFinanceData(userId);
+
+            // Tambah Kategori
+            document.getElementById('btnTambahKategori').addEventListener('click', () => {
+                const input = document.getElementById('saldoKategoriInput');
+                const nama = input.value.trim();
+                if (!nama) return;
+                const list = getKategoriList();
+                if (list.includes(nama)) {
+                    alert("Kategori \"" + nama + "\" sudah ada.");
+                    return;
+                }
+                list.push(nama);
+                saveKategoriList(list);
+                renderKategori();
+                input.value = '';
+            });
+
+            // Form Saldo
+            document.getElementById('saldoForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const jumlah = document.getElementById('saldoJumlah').value;
+                const kategori = document.getElementById('saldoKategori').value;
+
+                if (!kategori) {
+                    alert("Silakan pilih kategori terlebih dahulu.");
+                    return;
+                }
+
+                const { error } = await supabaseClient.from('keuangan').insert([
+                    { user_id: userId, deskripsi: 'Tambah Saldo — ' + kategori, jumlah: jumlah, tipe: 'masuk', kategori: kategori }
+                ]);
+
+                if (error) {
+                    alert("Gagal menambah saldo: " + error.message);
+                } else {
+                    document.getElementById('saldoForm').reset();
+                    loadFinanceData(userId);
+                }
+            });
+
+            // Form Transaksi
+            document.getElementById('financeForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const deskripsi = document.getElementById('deskripsi').value;
+                const jumlah = document.getElementById('jumlah').value;
+                const tipe = document.getElementById('tipe').value;
+                const kategori = document.getElementById('kategoriTransaksi').value;
+
+                if (!kategori) {
+                    alert("Silakan pilih kategori terlebih dahulu.");
+                    return;
+                }
+
+                const { error } = await supabaseClient.from('keuangan').insert([
+                    { user_id: userId, deskripsi: deskripsi, jumlah: jumlah, tipe: tipe, kategori: kategori }
+                ]);
+
+                if (error) {
+                    alert("Gagal menyimpan transaksi: " + error.message);
+                } else {
+                    document.getElementById('financeForm').reset();
+                    loadFinanceData(userId);
+                }
+            });
+
+            // Load Data
+            async function loadFinanceData(uid) {
+                const { data, error } = await supabaseClient
+                    .from('keuangan')
+                    .select('*')
+                    .eq('user_id', uid)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error("Gagal memuat data:", error.message);
+                    return;
+                }
+
+                // Hitung saldo
+                let masuk = 0, keluar = 0;
+                data.forEach(item => {
+                    if (item.tipe === 'masuk') masuk += Number(item.jumlah);
+                    else keluar += Number(item.jumlah);
+                });
+                const total = masuk - keluar;
+                document.getElementById('totalSaldo').textContent = 'Rp ' + total.toLocaleString('id-ID');
+                document.getElementById('saldoSub').textContent =
+                    data.length + ' transaksi tercatat · Pemasukan Rp ' + masuk.toLocaleString('id-ID') + ' · Pengeluaran Rp ' + keluar.toLocaleString('id-ID');
+
+                // Render tabel
+                const tbody = document.getElementById('financeTableBody');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Belum ada transaksi yang tercatat.</td></tr>';
+                    return;
+                }
+
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    const date = new Date(item.created_at).toLocaleDateString('id-ID', {
+                        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
+                    const badgeClass = item.tipe === 'masuk' ? 'badge-masuk' : 'badge-keluar';
+                    const label = item.tipe === 'masuk' ? 'Masuk' : 'Keluar';
+                    const prefix = item.tipe === 'masuk' ? '+' : '-';
+
+                    row.innerHTML = `
+                        <td data-label="Waktu">${date}</td>
+                        <td data-label="Deskripsi" style="color:#e2e8f0; font-weight:500;">${item.deskripsi}</td>
+                        <td data-label="Kategori">${item.kategori || '—'}</td>
+                        <td data-label="Tipe"><span class="badge ${badgeClass}">${label}</span></td>
+                        <td data-label="Jumlah" class="amount-cell" style="text-align:right; color:${item.tipe === 'masuk' ? 'var(--green)' : 'var(--red)'}">
+                            ${prefix}Rp ${Number(item.jumlah).toLocaleString('id-ID')}
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', async () => {
+                if (supabaseClient) await supabaseClient.auth.signOut();
+                sessionStorage.clear();
+                window.location.href = "login.html";
+            });
+        });
+    </script>
+</body>
+
+</html>

